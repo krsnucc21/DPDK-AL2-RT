@@ -241,4 +241,83 @@ Promiscuous mode: disabled
 Allmulticast mode: disabled
 ```
 
-## (Optional) Step 5: Build Pktgen
+## (Optional) Step 5: Build pktgen program
+
+If you want to run 'pkggen', the following additional steps build and install the program. Before building 'pktgen', install 'lua' which 'pktgen' needs to run. You may use the following commands:
+```bash
+sudo yum install -y readline-devel
+sudo yum install -y libpcap-devel
+
+mkdir lua_build
+cd lua_build
+wget http://www.lua.org/ftp/lua-5.3.4.tar.gz
+tar -zxf lua-5.3.4.tar.gz
+cd lua-5.3.4
+make linux test
+sudo make install
+```
+
+Now, download and build 'pktgen' as follows:
+```bash
+git clone git://dpdk.org/apps/pktgen-dpdk
+cd pktgen-dpdk
+git checkout pktgen-20.02.0
+
+export RTE_SDK=/home/ec2-user/dpdk
+export RTE_TARGET=arm64-armv8a-linuxapp-gcc
+
+cd $RTE_SDK
+make install T=arm64-armv8a-linuxapp-gcc
+
+cd ~/pktgen-dpdk
+vi app/pktgen-constants.h
+# find DEFAULT_TX_DESC and remove '* 2' from the definition of DEFAULT_TX_DESC.
+# There are two '* 2' places
+
+make
+```
+
+Please note that 'pktgen' refers to the DPDK source code so 'RTE_SDK' and 'RTE_TARGET' environment variables are provided. One more change required is to fix the number of default TX descriptor in the file of 'app/pktgen-constants.h'.
+
+Now, you can run 'pktgen' and send some packets to your destination. Here is an example command of 'pktgen':
+```bash
+sudo ./app/arm64-armv8a-linuxapp-gcc/pktgen -l 0-7 -w 00:06.0 -- -T -m "[2-7:2-7].0" --crc-strip -f range.cmd
+```
+
+Note that 'pktgen' uses a text file to set up the source and destination for your test. The following provides an example of configuration files. You may change the example as you need.
+```
+range 0 src mac start 0a:cb:c7:53:15:ed
+range 0 dst mac start 0a:fb:69:60:30:41
+
+range 0 src ip start 10.0.3.105
+range 0 src ip inc 0.0.0.0
+range 0 src ip min 10.0.3.105
+range 0 src ip max 10.0.3.105
+
+range 0 dst ip start 10.0.3.35
+range 0 dst ip inc 0.0.0.0
+range 0 dst ip min 10.0.3.35
+range 0 dst ip max 10.0.3.35
+
+range 0 proto udp
+
+range 0 dst port start 20000
+range 0 dst port inc 1
+range 0 dst port min 20000
+range 0 dst port max 30000
+
+range 0 src port start 50000
+range 0 src port inc 1
+range 0 src port min 50000
+range 0 src port max 60000
+
+range 0 vlan start 0
+
+range 0 size start 64
+range 0 size inc 1
+range 0 size min 64
+range 0 size max 64
+
+set 0 rate 50
+enable 0 range
+```
