@@ -27,7 +27,7 @@ uname -a
 ```
 
 The version should be:
-```bash
+```
 Linux ip-10-0-3-34.ec2.internal 5.4.91-rt50 #1 SMP PREEMPT_RT Tue May 18 03:20:59 UTC 2021 aarch64 aarch64 aarch64 GNU/Linux
 ```
 
@@ -39,7 +39,7 @@ cat /proc/cmdline
 ```
 
 The cmdline used through this DPDK install procedure looks like the following:
-```bash
+```
 BOOT_IMAGE=/boot/vmlinuz-5.4.91-rt50 root=UUID=53a36bec-2f52-4183-8f7f-3acfb060d4b3 ro console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 nvme_core.io_timeout=4294967295 rd.emergency=poweroff rd.shell=0 no_timer_check rcu_nocbs=0-7 rcu_nocb_poll=1 nohz=on nohz_full=0-7 isolcpus=0-7 irqaffinity=8-15 selinux=0 enforcing=0 noswap default_hugepagesz=1G hugepagesz=1G hugepages=30 mce=off audit=0 crashkernel=auto nmi_watchdog=0 fsck.mode=force fsck.repair=yes skew_tick=1 softlockup_panic=0 idle=poll nosoftlockup pcie_aspm.policy=performance
 ```
 
@@ -60,7 +60,7 @@ sudo grubby --default-kernel
 ```
 
 The last command will show the default kernel version to boot this machine.
-```bash
+```
 /boot/vmlinuz-5.4.91-rt50
 ```
 
@@ -70,7 +70,7 @@ cat /proc/cmdline
 ```
 
 The result would be:
-```bash
+```
 BOOT_IMAGE=/boot/vmlinuz-5.4.91-rt50 root=UUID=53a36bec-2f52-4183-8f7f-3acfb060d4b3 ro console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 nvme_core.io_timeout=4294967295 rd.emergency=poweroff rd.shell=0 no_timer_check rcu_nocbs=0-7 rcu_nocb_poll=1 nohz=on nohz_full=0-7 isolcpus=0-7 irqaffinity=8-15 selinux=0 enforcing=0 noswap default_hugepagesz=1G hugepagesz=1G hugepages=30 mce=off audit=0 crashkernel=auto nmi_watchdog=0 fsck.mode=force fsck.repair=yes skew_tick=1 softlockup_panic=0 idle=poll nosoftlockup pcie_aspm.policy=performance iommu.passthrough=1
 ```
 
@@ -135,3 +135,53 @@ cat /sys/module/vfio/parameters/enable_unsafe_noiommu_mode
 ```
 
 ## Step 3: Build and install DPDK
+
+Now, download the code of DPDK. v20.02 is recommended; as of today, that version is the latest one with the patches for Amazon Linux 2.
+```bash
+% git clone git://dpdk.org/dpdk
+% cd dpdk
+% git checkout v20.02
+```
+
+Since we have downloaded the Amazon Linux 2 patch for DPDK in the step 2, simply apply the patches to the DPDK code.
+```bash
+% git am ~/amzn-drivers/userspace/dpdk/20.02/*.patch
+```
+
+Then, the patches will be applied as follows:
+```
+Applying: net/ena: ensure Rx buffer size is at least 1400B
+Applying: net/ena/base: make allocation macros thread-safe
+Applying: net/ena/base: prevent allocation of zero sized memory
+Applying: net/ena: set IO ring size to valid value
+Applying: net/ena: remove memory barriers before doorbells
+Applying: net/ena: limit refill threshold by fixed value
+Applying: net/ena: fix build for O1 optimization
+```
+
+It is ready to build and install. Please run the following commands to install DPDK:
+```bash
+make config T=arm64-armv8a-linuxapp-gcc
+make
+sudo make install
+```
+
+The installed DPDK commands are found in the '/usr/local/bin' directory.
+```base
+ls /usr/local/bin/ -l
+```
+
+You can find new commands like 'testpmd'.
+```
+-rwxr-xr-x 1 root root 14766032 May 27 15:44 testpmd
+-rwxr-xr-x 1 root root 13864664 May 27 15:44 dpdk-procinfo
+-rwxr-xr-x 1 root root 13864480 May 27 15:44 dpdk-pdump
+-rwxr-xr-x 1 root root 13862064 May 27 15:44 testsad
+-rwxr-xr-x 1 root root 13934672 May 27 15:44 testbbdev
+-rwxr-xr-x 1 root root 13864056 May 27 15:44 dpdk-test-compress-perf
+-rwxr-xr-x 1 root root 13871080 May 27 15:44 dpdk-test-crypto-perf
+-rwxr-xr-x 1 root root 13938800 May 27 15:44 dpdk-test-eventdev
+lrwxrwxrwx 1 root root       39 May 27 15:45 dpdk-pmdinfo -> ../share/dpdk/usertools/dpdk-pmdinfo.py
+```
+
+## Step 4: Configure a DPDK interface
