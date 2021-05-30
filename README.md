@@ -74,7 +74,7 @@ The result would be:
 BOOT_IMAGE=/boot/vmlinuz-5.4.91-rt50 root=UUID=53a36bec-2f52-4183-8f7f-3acfb060d4b3 ro console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0 nvme_core.io_timeout=4294967295 rd.emergency=poweroff rd.shell=0 no_timer_check rcu_nocbs=0-7 rcu_nocb_poll=1 nohz=on nohz_full=0-7 isolcpus=0-7 irqaffinity=8-15 selinux=0 enforcing=0 noswap default_hugepagesz=1G hugepagesz=1G hugepages=30 mce=off audit=0 crashkernel=auto nmi_watchdog=0 fsck.mode=force fsck.repair=yes skew_tick=1 softlockup_panic=0 idle=poll nosoftlockup pcie_aspm.policy=performance iommu.passthrough=1
 ```
 
-## Step 2: Apply AWS patch to VFIO
+## Step 3: Apply AWS patch to VFIO
 
 VFIO-PCI driver does not support write combine. To activate this feature, the patch that checks if PCI BAR is prefetchable must be added. The basic steps are the same as in [this page](https://github.com/amzn/amzn-drivers/tree/master/userspace/dpdk/enav2-vfio-patch), but with the RT-patched kernel, we should use our own patched kernel source code to build the VFIO drivers.
 
@@ -134,7 +134,7 @@ lsmod
 cat /sys/module/vfio/parameters/enable_unsafe_noiommu_mode
 ```
 
-## Step 3: Build and install DPDK
+## Step 4: Build and install DPDK
 
 Now, download the code of DPDK. v20.02 is recommended; as of today, that version is the latest one with the patches for Amazon Linux 2.
 ```bash
@@ -184,7 +184,7 @@ You can find new commands like 'testpmd'.
 lrwxrwxrwx 1 root root       39 May 27 15:45 dpdk-pmdinfo -> ../share/dpdk/usertools/dpdk-pmdinfo.py
 ```
 
-## Step 4: Configure a DPDK interface with the VFIO driver
+## Step 5: Configure a DPDK interface with the VFIO driver
 
 With the VFIO driver we've patched, a DPDK network interface now can be configured. First, check if the driver and interfaces are available by the following command:
 ```bash
@@ -241,7 +241,7 @@ Promiscuous mode: disabled
 Allmulticast mode: disabled
 ```
 
-## (Optional) Step 5: Build pktgen program
+## (Optional) Step 6: Build pktgen program
 
 If you want to run 'pkggen', the following additional steps build and install the program. Before building 'pktgen', install 'lua' which 'pktgen' needs to run. You may use the following commands:
 ```bash
