@@ -184,4 +184,61 @@ You can find new commands like 'testpmd'.
 lrwxrwxrwx 1 root root       39 May 27 15:45 dpdk-pmdinfo -> ../share/dpdk/usertools/dpdk-pmdinfo.py
 ```
 
-## Step 4: Configure a DPDK interface
+## Step 4: Configure a DPDK interface with the VFIO driver
+
+With the VFIO driver we've patched, a DPDK network interface now can be configured. First, check if the driver and interfaces are available by the following command:
+```bash
+usertools/dpdk-devbind.py --status
+```
+
+If there are network interfaces available, the result may look like the following:
+```
+Network devices using kernel driver
+===================================
+0000:00:05.0 'Elastic Network Adapter (ENA) ec20' if=eth0 drv=ena unused=vfio-pci *Active*
+0000:00:06.0 'Elastic Network Adapter (ENA) ec20' if=eth1 drv=ena unused=vfio-pci 
+```
+
+Then, we set up the interface 'eth1' as a DPDK interface by the following command:
+```bash
+sudo usertools/dpdk-devbind.py --bind=vfio-pci eth1
+```
+
+You can check if that is set up correctly by using the previous 'dpdk-devbind.py' command. The result would look like the following:
+```
+Network devices using DPDK-compatible driver
+============================================
+0000:00:06.0 'Elastic Network Adapter (ENA) ec20' drv=vfio-pci unused=ena
+
+Network devices using kernel driver
+===================================
+0000:00:05.0 'Elastic Network Adapter (ENA) ec20' if=eth0 drv=ena unused=vfio-pci *Active*
+```
+
+You also can do a test with the new interface. Please run the following test command:
+```bash
+sudo /usr/local/bin/testpmd -- -i
+```
+
+The 'testpmd' runs in the interactive mode and the following command shows the DPDK interface information.
+```bash
+show port info 0
+```
+
+The result may look like this:
+```
+********************* Infos for port 0  *********************
+MAC address: 0A:CB:C7:53:15:ED
+Device name: 0000:00:06.0
+Driver name: net_ena
+Connect to socket: 0
+memory allocation on the socket: 0
+Link status: up
+Link speed: 0 Mbps
+Link duplex: full-duplex
+MTU: 1500
+Promiscuous mode: disabled
+Allmulticast mode: disabled
+```
+
+## (Optional) Step 5: Build Pktgen
