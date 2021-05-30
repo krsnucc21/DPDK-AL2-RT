@@ -75,3 +75,63 @@ BOOT_IMAGE=/boot/vmlinuz-5.4.91-rt50 root=UUID=53a36bec-2f52-4183-8f7f-3acfb060d
 ```
 
 ## Step 2: Apply AWS patch to VFIO
+
+VFIO-PCI driver does not support write combine. To activate this feature, the patch that checks if PCI BAR is prefetchable must be added. The basic steps are the same as in [this page](https://github.com/amzn/amzn-drivers/tree/master/userspace/dpdk/enav2-vfio-patch), but with the RT-patched kernel, we should use our own patched kernel source code to build the VFIO drivers.
+
+First, download the patch source code from the GitHub.
+```bash
+git clone https://github.com/amzn/amzn-drivers.git
+cd amzn-drivers/userspace/dpdk/enav2-vfio-patch/
+```
+
+And, copy the patched kernel source code under the 'tmp/linux-5.4.91' directory.
+```bash
+mkdir tmp
+cd tmp
+cp -R ~/rpmbuild/BUILD/kernel-5.4.91.amzn2/linux-5.4.91-41.139.amzn2.aarch64 linux-5.4.91
+cd ..
+```
+
+Then, change the shell script to apply the patches to our kernel code.
+```bash
+vi get-vfio-with-wc.sh
+```
+
+The following code changes should be applied:
+```
+"get-vfio-with-wc.sh" line 86 of 200
+function download_kernel_src {
+        bold "[1] Downloading prerequisites..."
+        #rm -rf "${TMP_DIR}"
+        mkdir -p "${TMP_DIR}"
+        cd "${TMP_DIR}"
+
+        #if apt-get -v >/dev/null 2>/dev/null; then
+        #       download_kernel_src_apt
+        #else
+        #       download_kernel_src_yum
+        #fi
+        cd linux-*
+}
+```
+
+Run the patch command to build and install VFIO drivers
+```bash
+sudo ./get-vfio-with-wc.sh
+```
+
+You may need to run the following commands to set up the VFIO drivers.
+```bash
+sudo su
+echo vfio > /etc/modules-load.d/vfio.conf
+echo vfio_pci > /etc/modules-load.d/vfio_pci.conf
+echo "options vfio enable_unsafe_noiommu_mode=1" > /etc/modprobe.d/vfio-noiommu.conf
+```
+
+Reboot your machine and see the changes have been applied correctly by the following commands:
+```bash
+lsmod
+cat /sys/module/vfio/parameters/enable_unsafe_noiommu_mode
+```
+
+## Step 3: Build and install DPDK
